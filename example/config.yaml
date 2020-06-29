@@ -1,0 +1,27 @@
+entityRules:
+   conditions:
+    - name: LabelsLen2
+      method: LabelsLen
+      arguments: 
+        - 2
+    - name: LabelsHasChanged
+      method: LabelsHasChanged
+    - name: IsNew
+      method: HasRevision
+   actions:
+    - name: AssignToAuthor
+      method: SetAssignee
+      arguments:
+        - "{{ .Author }}"
+    - name: InvalidStatus
+      method: AddLabel
+      arguments:
+        - invalid/status
+   rules:
+    - name: NeedStatus
+      when:
+        - LabelsHasChanged
+      if: not LabelsLen2 and IsNew
+      do: 
+        - AssignToAuthor
+        - InvalidStatus
