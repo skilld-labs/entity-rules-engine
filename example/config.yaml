@@ -1,0 +1,31 @@
+entityRules:
+   conditions:
+    - name: IsNew
+      method: HasRevision
+    - name: LabelsHasChanged
+      method: LabelsHasChanged
+    - name: IsStory
+      method: HasLabel
+      arguments:
+        - bruh
+    - name: HasStatus
+      method: HasLabel
+      arguments:
+        - status/*
+   actions:
+    - name: AssignToAuthor
+      method: SetAssignee
+      arguments:
+        - "{{ .Author }}"
+    - name: InvalidStatus
+      method: AddLabel
+      arguments:
+        - invalid/status
+   rules:
+    - name: NeedStatus
+      when:
+        - IsStory 
+      if: IsStory and IsStory
+      do: 
+        - AssignToAuthor
+        - InvalidStatus
