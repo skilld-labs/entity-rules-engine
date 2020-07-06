@@ -1,48 +1,94 @@
 This package allows you to create an entity rules engine.
-This library executes different actions on an object when the right events occur and if some conditions are valid.
 
-Let's imagine you have a type object with getters and setters methods.
+Let's imagine you have a type object with getter methods (returning boolean) and setter methods, and that you want to establish rules to change this object accordingly to events.
+You will have to define rules, they are composed of:
 
-the getter methods return boolean
-setter methods perform action on the object
+```go
+type Rules []Rule
+type Rule struct {
+	Name 	    string     // Id
+ 	Description string     // Describes the rule
+	When        []string   // Rule's triggers
+	If          string     // Rule's conditions
+	Do          []string   // Rule's actions
+}
+```
+Imagine you need your object to react to some triggers (When) and then check some conditions (If) before performing actions (Do).
+
+ ### When
+ 
+Is a string list of the conditions we want to have as triggers.
+The logical link between them is an OR. Meaning that if one trigger is valid from the selected triggers then When is validated.
+ 
+ ### If
+Is a string representing the logical link between the conditions.
+write the name of the conditions in a logical sentence like that for instance:
+cond_1 and ( cond_2 or cond_3 )
+ ### Do
+Is a string list of the actions we want to perform.
 
 # Listing conditions and actions
 Let's have conditions and actions following this structure:
-```
-conditions map[string]methodExecution
-actions    map[string]methodExecution
+```go
+Conditions MethodsExecution // List of methods for the When and If statements (getters)
+Actions    MethodsExecution // List of methods for the Do statement (setters)
 
-type methodExecution struct {
-	name   string
-	method string
-	params []interface{}
+type MethodsExecution []MethodExecution
+type MethodExecution struct {
+        Name      string    //Id
+        Method    string    //Name of the method related to the object
+        Arguments Arguments //Arguments to evaluate the Method with
 }
+
+type Arguments []Argument
+type Argument interface{}
 ```
-conditions being a map of methodExecution representing the getter methods.
-actions being a map of methodExecution representing the setter methods
-
-a methodExecution type has:
-- name:    It stands to be an id
-- method:  The name of the method of the type object
-- params: The arguments that you want to evaluate the method with
 
 
-# Defining a rule
-```
-type rule struct {
-	description string
-	name        string
-	when        []string
-	on          string
-	do          []string
+type EntityRules struct {
+
+        Conditions MethodsExecution
+        Actions    MethodsExecution
+        Conditions *MethodsExecution
+        Actions    *MethodsExecution
+        Rules      Rules
 }
+
+# Usage
+
+```go
+import ebr "github.com/skilld-labs/entity-rules-engine"
+```
+# Generate your rules
+
+```go 
+c := LoadContribution()
+entity := Contribution{}
+entityRules, err := ebr.LoadFromYAML("~.yaml")
+if err != nil {
+	log.Fatal(err)
+	} else {
+        if err := entityRules.ApplyOn(&c); err != nil{  
+		log.Fatal(err)
+                } 
+        fmt.Println(c)        
+        }
 ```
 
-- description: describes the rule.
-- name: rule's id.
-- when: defines the event on which the rule is called.
-- on: defines the conditions that are requiered to execute the rule.
-- do: defines the actions performed after when and on statements have been validated.
+Load a New EntityRules from either :
+- Json, yaml file
+- interface
+- map[string]interface{}
+
+There are a few With... option functions that can be used to customize the entityRules loading. 
+
+For example, to set a custom template.FuncMap parsing:
+-> WithEntityFuncs(entity)
+-> WithFuncMaps(fm) 
+
+
+
+
 
 for instance:
 rule:
@@ -79,24 +125,7 @@ rule:
 - on: IsTommy
 - do: HugTommy
  
- ### When
-Is a string list of the conditions we want to have as triggers.
-The logical link between them is an OR. Meaning that if one trigger is valid from the selected triggers then When is validated
- 
- ### On
-Is a string representing the logical link between the conditions.
-write the name of the conditions in a logical sentence like that for instance:
- 
-cond_1 and ( cond_2 or cond_3 )
- 
-*(beware of the blank spaces around "(" and ")" )*
- 
- ### Do
-Is a string list of the actions we want to perform.
- 
-# Generate your models
-- Lists conditions and actions methods you want to call.
-- Create your rules.
+
 
 # Contribution
 written by Brunelle Grossmann
