@@ -15,8 +15,8 @@ import (
 )
 
 type EntityRules struct {
-	Conditions *MethodsExecution
-	Actions    *MethodsExecution
+	Conditions MethodsExecution
+	Actions    MethodsExecution
 	Rules      Rules
 }
 type MethodsExecution []MethodExecution
@@ -39,9 +39,22 @@ type Rule struct {
 	Do          []string
 }
 
+var functionMatcher = regexp.MustCompile(`[\w\d]+`)
+
+const (
+	TrueValue = "true"
+)
+
 var (
-	ErrNotRegistered = errors.New("is not registered")
-	ErrIsNotBool     = errors.New("do not return boolean")
+	ErrEmptyRules                 = errors.New("entity does not have rules")
+	ErrEmptyRuleName              = errors.New("rule misses name")
+	ErrEmptyRuleWhen              = errors.New("rule does not have when, if you do not want any when conditions set it to true")
+	ErrEmptyRuleIf                = errors.New("rule does not have if, if you do not want any if conditions set it to true")
+	ErrEmptyRuleDo                = errors.New("rule does not have do, please add one")
+	ErrEmptyMethodExecutionName   = errors.New("methodexecution misses name")
+	ErrEmptyMethodExecutionMethod = errors.New("methodexecution misses method")
+	ErrMethodNotRegistered        = errors.New("method is not registered")
+	ErrMethodReturnNotBool        = errors.New("method does not return boolean")
 )
 
 func (entityRules *EntityRules) ApplyOn(entities ...interface{}) error {
@@ -64,21 +77,20 @@ func (entityRules *EntityRules) Validate() error {
 		return err
 	}
 	if rr := entityRules.Rules; rr == nil {
-		fmt.Println("Entity does not have rules")
-		return nil
+		return ErrEmptyRules
 	} else {
 		for _, r := range rr {
 			if r.Name == "" {
-				return fmt.Errorf("Rule missing name: %v", r)
+				return fmt.Errorf(":w: %v", ErrEmptyRuleName, r)
 			}
 			if r.When == nil {
-				return fmt.Errorf("rule: %s does not have When, if you do not want any when conditions set it to true", r.Name)
+				return fmt.Errorf("%w: %s", ErrEmptyRuleWhen, r.Name)
 			}
 			if r.If == "" {
-				return fmt.Errorf("rule: %s does not have If, if you do not want any if conditions set it to true", r.Name)
+				return fmt.Errorf("%w: %s", ErrEmptyRuleIf, r.Name)
 			}
 			if r.Do == nil {
-				return fmt.Errorf("rule: %s does not have Do", r.Name)
+				return fmt.Errorf("%w: %s", ErrEmptyRuleDo, r.Name)
 			}
 		}
 	}
@@ -88,10 +100,10 @@ func (entityRules *EntityRules) Validate() error {
 func (mm MethodsExecution) validate() error {
 	for _, m := range mm {
 		if m.Name == "" {
-			return fmt.Errorf("cannot use empty name: %v", m)
+			return fmt.Errorf("%w: %v", ErrEmptyMethodExecutionName, m)
 		}
 		if m.Method == "" {
-			return fmt.Errorf("cannot use empty method: %v", m)
+			return fmt.Errorf("%w: %v", ErrEmptyMethodExecutionMethod, m)
 		}
 	}
 	return nil
@@ -121,13 +133,13 @@ func (entityRules *EntityRules) applyOnOne(entity interface{}) error {
 
 func (entityRules *EntityRules) isRuleTriggered(entity reflect.Value, when []string) (bool, error) {
 	//Check if at least one trigger is valid using When attribute of the current rule
-	if when[0] == "true" {
+	if when[0] == TrueValue {
 		return true, nil
 	}
 	for _, name := range when {
 		isTriggered, err := entityRules.executeMethodBool(entity, name)
 		if err != nil {
-			return false, fmt.Errorf("%w: %s", err, name)
+			return false, err
 		}
 		if isTriggered {
 			return true, nil
@@ -138,91 +150,90 @@ func (entityRules *EntityRules) isRuleTriggered(entity reflect.Value, when []str
 
 func (entityRules *EntityRules) entityHasConditions(entity reflect.Value, on string) (hasConditions bool, err error) {
 	//Check if conditions are valid using If attribute of the current rule
-	if on == "true" { //If no conditions are requiered
+	if on == TrueValue { //If no conditions are requiered
 		return true, nil
 	}
 	//Formating On for latter evaluation expression
 	namedConditions := make(map[string]bool)
-	condition := on
-	var functionMatcher = regexp.MustCompile(`[\w\d]+`)
-	matches := functionMatcher.FindAllString(condition, -1)
+	matches := functionMatcher.FindAllString(on, -1)
 	for _, match := range matches {
-		if isNotOperator(match) {
-			condition = strings.Replace(condition, match, match+" == true", -1)
+		if !isOperator(match) {
+			on = strings.Replace(on, match, match+" == true", -1)
 			if namedConditions[match], err = entityRules.executeMethodBool(entity, match); err != nil {
-				return false, fmt.Errorf("%w: %s", err, match)
+				return false, err
 			}
 		}
 	}
-	for strings.Contains(condition, "== true == true") {
-		condition = strings.Replace(condition, "== true == true", "== true", -1)
+	for strings.Contains(on, "== true == true") {
+		on = strings.Replace(on, "== true == true", "== true", -1)
 	}
 	//Evaluating expression with bexpr package
-	eval, err := bexpr.CreateEvaluatorForType(condition, nil, (map[string](bool))(nil))
+	eval, err := bexpr.CreateEvaluatorForType(on, nil, (map[string](bool))(nil))
 	if err != nil {
 		return false, err
 	}
-	hasConditions, err = eval.Evaluate(namedConditions)
-	if err != nil {
+	if hasConditions, err = eval.Evaluate(namedConditions); err != nil {
 		return false, err
 	}
 	return hasConditions, nil
 }
 
-func isNotOperator(s string) bool {
-	return s != "or" && s != "and" && s != "not"
+func isOperator(s string) bool {
+	return s == "or" || s == "and" || s == "not"
 }
 
 func (entityRules *EntityRules) execute(entity reflect.Value, do []string) error {
 	//Execute actions from Do attributes in the current rule
 	for _, name := range do {
-		if _, err := executeMethod(entity, *entityRules.Actions, name); err != nil {
-			return fmt.Errorf("%w: %s", err, name)
+		if _, err := executeMethod(entity, entityRules.Actions, name); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (entityRules *EntityRules) executeMethodBool(entity reflect.Value, name string) (result bool, err error) {
+func (entityRules *EntityRules) executeMethodBool(entity reflect.Value, name string) (bool, error) {
 	//Evaluating with entity the method while checking if it return a boolean
-	/*	defer func() {
-		if r := recover(); r != nil {
-			result, err = false, r.(error)
-		}
-	}()*/
-	resultMethod, err := executeMethod(entity, *entityRules.Conditions, name)
+	resultMethod, err := executeMethod(entity, entityRules.Conditions, name)
 	if err != nil {
 		return false, err
 	}
-	result, ok := resultMethod[0].Interface().(bool)
-	if !ok {
-		return false, ErrIsNotBool
+	if len(resultMethod) > 0 && resultMethod[0].Interface() != nil {
+		if result, ok := resultMethod[0].Interface().(bool); ok {
+			return result, nil
+		}
 	}
-	return result, nil
+	return false, ErrMethodReturnNotBool
 }
 
 func executeMethod(entity reflect.Value, methods MethodsExecution, name string) (result []reflect.Value, err error) {
 	//Evaluating with entity the method identified by name and contained in the input methods map
 	defer func() {
 		if r := recover(); r != nil {
-			result, err = nil, r.(error)
+			switch r.(type) {
+			case string:
+				result, err = nil, errors.New(r.(string))
+			case *reflect.ValueError:
+				re := r.(*reflect.ValueError)
+				result, err = nil, errors.New(re.Error())
+			}
 		}
 	}()
 	method := methods.GetByName(name)
 	if method.Name == "" {
-		return nil, ErrNotRegistered
+		return nil, fmt.Errorf("%w: %s", ErrMethodNotRegistered, name)
 	}
 	rps, err := evaluateParams(entity, method)
 	if err != nil {
 		return nil, err
 	}
 	return entity.MethodByName(method.Method).Call(rps), nil
+
 }
 
 func evaluateParams(entity reflect.Value, methodExecution MethodExecution) (rps []reflect.Value, err error) {
 	for _, param := range methodExecution.Arguments {
-		param, err = evaluateParam(entity, param)
-		if err != nil {
+		if param, err = evaluateParam(entity, param); err != nil {
 			return nil, err
 		}
 		rps = append(rps, reflect.ValueOf(param))
@@ -241,8 +252,8 @@ func evaluateParam(entity interface{}, param interface{}) (interface{}, error) {
 	return param, nil
 }
 
-func (mm *MethodsExecution) GetByName(name string) MethodExecution {
-	for _, m := range *mm {
+func (mm MethodsExecution) GetByName(name string) MethodExecution {
+	for _, m := range mm {
 		if m.Name == name {
 			return m
 		}

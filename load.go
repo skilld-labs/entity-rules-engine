@@ -118,7 +118,7 @@ func WithEntityFuncs(entity interface{}) LoadOption {
 	}
 }
 
-func loadFuncMap(entity interface{}, fm template.FuncMap) template.FuncMap {
+func loadFuncMap(entity interface{}, fm template.FuncMap) {
 	rte := reflect.TypeOf(entity)
 	for methodIdx := 0; methodIdx < rte.NumMethod(); methodIdx++ {
 		method := rte.Method(methodIdx)
@@ -152,5 +152,4 @@ func loadFuncMap(entity interface{}, fm template.FuncMap) template.FuncMap {
 			return resp, err
 		}
 	}
-	return fm
 }

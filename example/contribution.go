@@ -6,14 +6,10 @@ import (
 	"strings"
 )
 
-func (c *Contribution) LabelsLen(l int) bool {
-	return len(c.Labels) == l
+func (c *Contribution) LabelsLen(l float64) bool {
+	L := int(l)
+	return len(c.Labels) == L
 }
-
-func (c *Contribution) HasLabel(l string) bool {
-	return true
-}
-
 func (c *Contribution) HasRevision() bool {
 	return true
 }
@@ -26,13 +22,11 @@ func (c *Contribution) AddLabel(l string) {
 func (c *Contribution) HasAssignee() bool {
 	return c.Assignee != ""
 }
-
 func (c *Contribution) SetAssignee(l string) {
 	c.Assignee = l
 }
 
 type Condition func(reflect.Value) bool
-
 type Contribution struct {
 	Assignee string
 	Author   string

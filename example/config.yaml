@@ -1,17 +1,13 @@
 entityRules:
    conditions:
-    - name: IsNew
-      method: HasRevision
+    - name: LabelsLen2
+      method: LabelsLen
+      arguments: 
+        - 2
     - name: LabelsHasChanged
       method: LabelsHasChanged
-    - name: IsStory
-      method: HasLabel
-      arguments:
-        - bruh
-    - name: HasStatus
-      method: HasLabel
-      arguments:
-        - status/*
+    - name: IsNew
+      method: HasRevision
    actions:
     - name: AssignToAuthor
       method: SetAssignee
@@ -24,8 +20,8 @@ entityRules:
    rules:
     - name: NeedStatus
       when:
-        - IsStory 
-      if: IsStory and IsStory
+        - LabelsHasChanged
+      if: not LabelsLen2 and IsNew
       do: 
         - AssignToAuthor
         - InvalidStatus
