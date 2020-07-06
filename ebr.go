@@ -30,6 +30,7 @@ type Arguments []Argument
 type Argument interface{}
 
 type Rules []Rule
+
 type Rule struct {
 	Name        string
 	Description string
