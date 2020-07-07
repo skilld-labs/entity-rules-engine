@@ -107,13 +107,15 @@ The object is the room we are in, having attributes about who is in it and what 
 To define the EntityRules we will define a rule and list Actions and Conditions.
 
 The EntityRule will be defined like this :
-```
+```yaml
 rule:
-- description: Hugging Tommy as welcome
 - name: WelcomingTommy
-- when: EnteringRoom
+- description: Hugging Tommy as welcome
+- when: 
+   - EnteringRoom
 - if: IsTommy
-- do: HugTommy
+- do: 
+   - HugTommy
 
 conditions:
 - name: EnteringRoom 
