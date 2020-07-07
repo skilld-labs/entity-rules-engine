@@ -112,7 +112,7 @@ rule:
 - description: Hugging Tommy as welcome
 - name: WelcomingTommy
 - when: EnteringRoom
-- on: IsTommy
+- if: IsTommy
 - do: HugTommy
 
 conditions:
@@ -120,12 +120,12 @@ conditions:
   method: IsNewInRoom
 - name: IsTommy
   method: IsName
-  params: Tommy
+  arguments: Tommy
  
 actions:
 - name: HugTommy
   method: Hug
-  params: Tommy
+  arguments: Tommy
  ```
 
 
