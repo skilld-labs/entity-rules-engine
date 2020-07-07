@@ -1,6 +1,6 @@
 This package allows you to create an entity rules engine.
 
-Let's imagine you have an object with getter methods (returning boolean) and setter methods, and that you want to establish rules to change this object accordingly to events.
+Let's imagine you have an object with conditions methods (returning boolean) and actions methods, and that you want to establish rules to change this object accordingly to events.
 
 # Rules
 
@@ -41,8 +41,8 @@ type Argument interface{}
 We divide method execution information into: conditions and actions methods
 ```go
 type MethodsExecution []MethodExecution
-Conditions MethodsExecution // List of methods for the When and If statements (getters)
-Actions    MethodsExecution // List of methods for the Do statement (setters)
+Conditions MethodsExecution // List of methods for the When and If statements 
+Actions    MethodsExecution // List of methods for the Do statements
 ```
 
 # EntityRules
@@ -107,15 +107,17 @@ The object is the room we are in, having attributes about who is in it and what 
 To define the EntityRules we will define a rule and list Actions and Conditions.
 
 The EntityRule will be defined like this :
+
 ```yaml
-rule:
-- name: WelcomingTommy
-- description: Hugging Tommy as welcome
-- when: 
-   - EnteringRoom
-- if: IsTommy
-- do: 
-   - HugTommy
+rules:
+-rule:
+  name: WelcomingTommy
+  description: Hugging Tommy as welcome
+  when: 
+  - EnteringRoom
+  if: IsTommy
+  do: 
+  - HugTommy
 
 conditions:
 - name: EnteringRoom 
@@ -128,9 +130,8 @@ actions:
 - name: HugTommy
   method: Hug
   arguments: Tommy
- ```
-
-
+```
 # Contribution
+
 written by Brunelle Grossmann
 with help from skilld-labs
