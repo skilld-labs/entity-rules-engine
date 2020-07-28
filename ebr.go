@@ -40,6 +40,7 @@ type Rule struct {
 }
 
 var functionMatcher = regexp.MustCompile(`[\w\d]+`)
+var conditionsResults = map[string]bool{}
 
 const (
 	TrueValue = "true"
@@ -194,12 +195,16 @@ func (entityRules *EntityRules) execute(entity reflect.Value, do []string) error
 
 func (entityRules *EntityRules) executeMethodBool(entity reflect.Value, name string) (bool, error) {
 	//Evaluating with entity the method while checking if it return a boolean
+	if result, ok := conditionsResults[name]; ok {
+		return result, nil
+	}
 	resultMethod, err := executeMethod(entity, entityRules.Conditions, name)
 	if err != nil {
 		return false, err
 	}
 	if len(resultMethod) > 0 && resultMethod[0].Interface() != nil {
 		if result, ok := resultMethod[0].Interface().(bool); ok {
+			conditionsResults[name] = result
 			return result, nil
 		}
 	}
