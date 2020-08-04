@@ -213,10 +213,10 @@ func executeMethod(entity reflect.Value, methods MethodsExecution, name string) 
 		if r := recover(); r != nil {
 			switch r.(type) {
 			case string:
-				result, err = nil, errors.New(r.(string))
+				result, err = nil, errors.New(r.(string)+": "+name)
 			case *reflect.ValueError:
 				re := r.(*reflect.ValueError)
-				result, err = nil, errors.New(re.Error())
+				result, err = nil, errors.New(re.Error()+": "+name)
 			}
 		}
 	}()
