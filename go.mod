@@ -1,4 +1,4 @@
-module entity-rules-engine
+module github.com/skilld-labs/entity-rules-engine
 
 go 1.21.3
 
