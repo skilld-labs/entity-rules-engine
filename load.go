@@ -3,12 +3,13 @@ package entityrules
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/knadh/koanf"
+	"reflect"
+	"text/template"
+
 	cjson "github.com/knadh/koanf/parsers/json"
 	cyaml "github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
-	"reflect"
-	"text/template"
+	"github.com/knadh/koanf/v2"
 )
 
 func LoadFromJSON(filePath string, opts ...LoadOption) (entityRules *EntityRules, err error) {

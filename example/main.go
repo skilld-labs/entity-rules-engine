@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	//er "github.com/skilld-lab/entity-rules-engine"
-	er ".."
+
+	er "github.com/skilld-labs/entity-rules-engine"
 )
 
 func main() {

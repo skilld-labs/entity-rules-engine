@@ -169,7 +169,7 @@ func (entityRules *EntityRules) entityHasConditions(entity reflect.Value, on str
 		on = strings.Replace(on, "== true == true", "== true", -1)
 	}
 	//Evaluating expression with bexpr package
-	eval, err := bexpr.CreateEvaluatorForType(on, nil, (map[string](bool))(nil))
+	eval, err := bexpr.CreateEvaluator(on)
 	if err != nil {
 		return false, err
 	}
